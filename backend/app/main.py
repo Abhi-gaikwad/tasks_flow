@@ -2,7 +2,12 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from fastapi.middleware.cors import CORSMiddleware # Import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from . import models, schemas, crud, auth
 from .database import engine, get_db
@@ -13,12 +18,14 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # --- CORS Configuration ---
-# This is crucial for allowing your frontend (e.g., React app on localhost:5173)
-# to make requests to your backend (localhost:8000).
+# Get frontend origin from environment variable
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
+if not FRONTEND_ORIGIN:
+    raise ValueError("FRONTEND_ORIGIN environment variable not set.")
+
 origins = [
-    "http://localhost",
-    "http://localhost:5173",  # Your frontend's development server URL
-    # You can add other origins here if your frontend is deployed elsewhere
+    FRONTEND_ORIGIN,
+    # Add other origins here if your frontend is deployed elsewhere
     # e.g., "https://your-production-frontend.com"
 ]
 
@@ -26,8 +33,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # --- End CORS Configuration ---
 
@@ -42,7 +49,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
-    # Pass user.is_admin to the create_access_token function
     access_token = auth.create_access_token(
         data={"sub": user.email, "is_admin": user.is_admin}, expires_delta=access_token_expires
     )

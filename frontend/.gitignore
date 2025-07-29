@@ -1,25 +1,26 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+    # dependencies
+    /node_modules
+    /.pnp
+    .pnp.js
 
-node_modules
-dist
-dist-ssr
-*.local
+    # testing
+    /coverage
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.env
+    # production
+    /build
+    /dist
+    /out
+    /tmp
+
+    # misc
+    .DS_Store
+    .env.local
+    .env.*.local
+    .env # This line ignores your .env file
+    npm-debug.log*
+    yarn-debug.log*
+    yarn-error.log*
+    .idea
+    .vscode
+    *.log
+    
