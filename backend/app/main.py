@@ -64,8 +64,3 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.get("/users/me/", response_model=schemas.UserInDB)
 async def read_users_me(current_user: schemas.UserInDB = Depends(get_current_user)):
     return current_user
-
-@app.get("/admin/users/", response_model=list[schemas.UserInDB])
-async def read_all_users_admin(db: Session = Depends(get_db), current_admin: schemas.UserInDB = Depends(get_current_admin_user)):
-    users = db.query(models.User).all()
-    return users

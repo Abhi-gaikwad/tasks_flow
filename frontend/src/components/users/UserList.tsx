@@ -1,189 +1,97 @@
-import React, { useState } from 'react';
-import { Search, UserPlus, Shield, User, MoreHorizontal } from 'lucide-react';
+// src/components/users/UserList.tsx (Example)
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
-import { UserForm } from './UserForm';
-import { User as UserType } from '../../types';
+import { Button } from '../common/Button';
+import { UserForm } from './UserForm'; // Import UserForm
+import { PlusCircle } from 'lucide-react'; // Import icon
 
 export const UserList: React.FC = () => {
-  const { users, addUser, updateUser } = useApp();
-  const { user } = useAuth();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const { users, loadUsers } = useApp(); // Get users and loadUsers from AppContext
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  useEffect(() => {
+    loadUsers(); // Load users when UserList mounts (assuming admin context)
+  }, [loadUsers]);
 
-  const handleCreateUser = (userData: Omit<UserType, 'id' | 'createdAt'>) => {
-    addUser(userData);
-    setIsCreateModalOpen(false);
-  };
-
-  const toggleTaskAssignPermission = (userId: string, canAssignTasks: boolean) => {
-    updateUser(userId, { canAssignTasks });
-  };
-
-  const toggleUserActive = (userId: string, isActive: boolean) => {
-    updateUser(userId, { isActive });
-  };
-
-  if (user?.role !== 'admin') {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Access denied. Admin privileges required.</p>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600">Manage team members and permissions</p>
-        </div>
-        <Button icon={UserPlus} onClick={() => setIsCreateModalOpen(true)}>
-          Add User
+    <div className="p-6 bg-white rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold text-gray-800">Users</h2>
+        <Button onClick={() => setIsCreateUserModalOpen(true)}>
+          <PlusCircle className="w-5 h-5 mr-2" />
+          Add New User
         </Button>
       </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
-          </select>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-900">User</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Role</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Permissions</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((u) => (
-                <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={u.avatar || `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400`}
-                        alt={u.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">{u.name}</p>
-                        <p className="text-sm text-gray-500">{u.email}</p>
-                      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Role
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="relative px-6 py-3">
+                <span className="sr-only">Edit</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-10 w-10">
+                      <img className="h-10 w-10 rounded-full" src={user.avatar} alt="" />
                     </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      {u.role === 'admin' ? (
-                        <Shield className="w-4 h-4 text-purple-600" />
-                      ) : (
-                        <User className="w-4 h-4 text-gray-400" />
-                      )}
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {u.role}
-                      </span>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
                     </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">{user.email}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
                     }`}>
-                      {u.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={u.canAssignTasks}
-                          onChange={(e) => toggleTaskAssignPermission(u.id, e.target.checked)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-600">Can assign tasks</span>
-                      </label>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-sm text-gray-600">
-                      {u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleUserActive(u.id, !u.isActive)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                          u.isActive 
-                            ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                      >
-                        {u.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button className="p-1 text-gray-400 hover:text-gray-600">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No users found matching your criteria.</p>
-          </div>
-        )}
+                    {user.role}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                    {user.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  {/* Add Edit/Delete buttons here */}
+                  <a href="#" className="text-blue-600 hover:text-blue-900">Edit</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Add New User"
+        isOpen={isCreateUserModalOpen}
+        onClose={() => setIsCreateUserModalOpen(false)}
+        title="Create New User"
         maxWidth="lg"
       >
-        <UserForm
-          onSubmit={handleCreateUser}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
+        <UserForm onClose={() => setIsCreateUserModalOpen(false)} />
       </Modal>
     </div>
   );

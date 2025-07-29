@@ -28,6 +28,6 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    assigned_to_user = relationship("User", foreign_keys=[assignedTo], backref="assigned_tasks_rel") # Renamed backref
-    owner_user = relationship("User", foreign_keys=[owner_id], backref="created_tasks_rel") # Renamed backref
+    # Define relationships
+    assigned_to_user = relationship("User", foreign_keys=[assignedTo], backref="assigned_tasks_rel")
+    owner_user = relationship("User", foreign_keys=[owner_id], backref="created_tasks_rel")

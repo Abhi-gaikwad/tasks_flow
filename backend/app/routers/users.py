@@ -33,26 +33,29 @@ async def read_users_me(current_user: schemas.UserInDB = Depends(get_current_use
 
 # Move the admin-only endpoint to get all users here
 @router.get("/", response_model=List[schemas.UserInDB])
-async def read_all_users_admin(
+def read_users(
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
-    current_admin: schemas.UserInDB = Depends(get_current_admin_user)
+    current_admin: schemas.UserInDB = Depends(get_current_admin_user) # Admin-only
 ):
     """
-    Retrieve all users (admin only).
+    Get a list of all users (admin only).
     """
-    users = db.query(models.User).all()
+    users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
+# Move the admin-only endpoint to get a single user by ID here
 @router.get("/{user_id}", response_model=schemas.UserInDB)
-def read_user_by_id(
+def read_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_admin: schemas.UserInDB = Depends(get_current_admin_user)
+    current_admin: schemas.UserInDB = Depends(get_current_admin_user) # Admin-only
 ):
     """
-    Retrieve a single user by ID (admin only).
+    Get a specific user's details by ID (admin only).
     """
-    user = crud.get_user_by_id(db, user_id=user_id) # Need to create get_user_by_id in crud.py
+    user = crud.get_user_by_id(db, user_id=user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -80,7 +83,7 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_admin: schemas.UserInDB = Depends(get_current_admin_user)
+    current_admin: schemas.UserInDB = Depends(get_current_admin_user) # Admin-only
 ):
     """
     Delete a user (admin only).
@@ -88,7 +91,5 @@ def delete_user(
     db_user = crud.get_user_by_id(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-
-    # Need to add a `delete_user` function in crud.py
-    crud.delete_user(db=db, user_id=user_id)
-    return {"message": "User deleted successfully"}
+    crud.delete_user(db, user_id=user_id)
+    return {"detail": "User deleted successfully"}

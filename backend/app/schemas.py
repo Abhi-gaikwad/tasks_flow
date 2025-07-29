@@ -51,8 +51,8 @@ class Task(TaskBase):
     class Config:
         from_attributes = True
 
-# Optional: For updating tasks, you might want a schema that allows partial updates
-class TaskUpdate(BaseModel):
+# Optional: For updating tasks, you might want a schema
+class TaskUpdate(TaskBase):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None

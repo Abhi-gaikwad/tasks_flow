@@ -1,21 +1,25 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+// src/contexts/AppContext.tsx
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Task, User, Client, Notification } from '../types';
+import { createUser as apiCreateUser, fetchUsers as apiFetchUsers } from '../services/api'; // Import your API functions
+import { useAuth } from './AuthContext'; // To get the current user for admin checks
 
 interface AppContextType {
   tasks: Task[];
-  users: User[];
+  users: User[]; // Now fetched from backend
   clients: Client[];
   notifications: Notification[];
   selectedClient: Client | null;
   setSelectedClient: (client: Client | null) => void;
-  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'owner_id'>) => Promise<void>; // Added owner_id to Omit
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
-  addUser: (user: Omit<User, 'id' | 'createdAt'>) => void;
+  addUser: (user: Omit<User, 'id' | 'createdAt' | 'avatar' | 'canAssignTasks' | 'lastLogin'> & { password?: string }) => Promise<void>; // Updated Omit
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
   markNotificationAsRead: (id: string) => void;
+  loadUsers: () => Promise<void>; // Function to explicitly load users
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -33,150 +37,73 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Design Landing Page',
-      description: 'Create wireframes and mockups for the new landing page',
-      priority: 'high',
-      status: 'in-progress',
-      assignedTo: '2',
-      assignedBy: '1',
-      createdAt: new Date('2024-01-15'),
-      dueDate: new Date('2024-01-25'),
-      tags: ['design', 'frontend'],
-    },
-    {
-      id: '2',
-      title: 'Database Migration',
-      description: 'Migrate user data to new database schema',
-      priority: 'urgent',
-      status: 'pending',
-      assignedTo: '3',
-      assignedBy: '1',
-      createdAt: new Date('2024-01-14'),
-      dueDate: new Date('2024-01-20'),
-      tags: ['backend', 'database'],
-    },
-    {
-      id: '3',
-      title: 'User Testing',
-      description: 'Conduct user testing sessions for the new features',
-      priority: 'medium',
-      status: 'completed',
-      assignedTo: '4',
-      assignedBy: '1',
-      createdAt: new Date('2024-01-10'),
-      dueDate: new Date('2024-01-18'),
-      completedAt: new Date('2024-01-17'),
-      tags: ['testing', 'ux'],
-    },
-  ]);
-
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@company.com',
-      role: 'admin',
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400',
-      canAssignTasks: true,
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      lastLogin: new Date(),
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah@company.com',
-      role: 'user',
-      avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=400',
-      canAssignTasks: false,
-      isActive: true,
-      createdAt: new Date('2024-01-02'),
-      lastLogin: new Date('2024-01-15'),
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      email: 'michael@company.com',
-      role: 'user',
-      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400',
-      canAssignTasks: true,
-      isActive: true,
-      createdAt: new Date('2024-01-03'),
-      lastLogin: new Date('2024-01-14'),
-    },
-    {
-      id: '4',
-      name: 'Emma Wilson',
-      email: 'emma@company.com',
-      role: 'user',
-      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400',
-      canAssignTasks: false,
-      isActive: true,
-      createdAt: new Date('2024-01-04'),
-      lastLogin: new Date('2024-01-13'),
-    },
-  ]);
-
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: '1',
-      name: 'TechCorp Solutions',
-      email: 'contact@techcorp.com',
-      company: 'TechCorp Inc.',
-      avatar: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=400',
-      tasksCount: { total: 15, completed: 8, pending: 4, inProgress: 3 },
-      createdAt: new Date('2024-01-01'),
-    },
-    {
-      id: '2',
-      name: 'Digital Innovations',
-      email: 'hello@digitalinnovations.com',
-      company: 'Digital Innovations Ltd.',
-      avatar: 'https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=400',
-      tasksCount: { total: 12, completed: 7, pending: 3, inProgress: 2 },
-      createdAt: new Date('2024-01-05'),
-    },
-  ]);
-
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'task_assigned',
-      title: 'New Task Assigned',
-      message: 'You have been assigned a new task: Design Landing Page',
-      userId: '2',
-      taskId: '1',
-      isRead: false,
-      createdAt: new Date('2024-01-15T10:30:00'),
-    },
-    {
-      id: '2',
-      type: 'deadline_approaching',
-      title: 'Deadline Approaching',
-      message: 'Database Migration task is due in 2 days',
-      userId: '3',
-      taskId: '2',
-      isRead: false,
-      createdAt: new Date('2024-01-18T09:00:00'),
-    },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // Initialize with empty array
+  const [clients, setClients] = useState<Client[]>([]); // Assuming clients are static for now or fetched elsewhere
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
+  const { token, isAuthenticated, isLoading, user: authUser } = useAuth(); // Get auth status and user from AuthContext
+
+  // Load users from backend
+  const loadUsers = async () => {
+    if (!isAuthenticated || !authUser?.role || authUser.role !== 'admin') {
+      // Only admins can load all users from the backend
+      setUsers([]); // Clear users if not admin
+      return;
+    }
+    try {
+      const fetchedUsers = await apiFetchUsers();
+      // Map backend UserInDB schema to frontend User schema
+      const mappedUsers: User[] = fetchedUsers.map((u: any) => ({
+        id: String(u.id), // Convert int to string
+        email: u.email,
+        name: u.email.split('@')[0], // Derive name from email for frontend display
+        role: u.is_admin ? 'admin' : 'user',
+        canAssignTasks: u.is_admin, // Admins can assign tasks
+        isActive: true, // Assuming all fetched users are active by default or add a field in backend
+        createdAt: new Date(), // Placeholder, backend doesn't return this in UserInDB
+        avatar: `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400`, // Default avatar
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      // Handle error, e.g., show a notification
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && authUser?.role === 'admin') {
+      loadUsers(); // Load users when authenticated as admin
+    } else {
+      setUsers([]); // Clear users if not authenticated or not admin
+    }
+  }, [isAuthenticated, authUser?.role]); // Re-run when auth state or user role changes
+
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'owner_id'>) => {
+    // This needs to be implemented with backend API calls for tasks
+    // For now, it will just add to frontend state
     const newTask: Task = {
       ...task,
       id: Date.now().toString(),
       createdAt: new Date(),
+      owner_id: authUser?.id || 'unknown', // Assign current user as owner
+      // Ensure assignedBy is also included if needed for frontend Task type
+      assignedBy: authUser?.name || authUser?.email || 'unknown',
     };
     setTasks(prev => [...prev, newTask]);
+    addNotification({
+      type: 'task_assigned',
+      title: 'New Task Created!',
+      message: `Task "${task.title}" has been created.`,
+      userId: authUser?.id || 'admin',
+      taskId: newTask.id,
+      isRead: false,
+    });
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(task => 
+    setTasks(prev => prev.map(task =>
       task.id === id ? { ...task, ...updates } : task
     ));
   };
@@ -185,17 +112,43 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setTasks(prev => prev.filter(task => task.id !== id));
   };
 
-  const addUser = (user: Omit<User, 'id' | 'createdAt'>) => {
-    const newUser: User = {
-      ...user,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setUsers(prev => [...prev, newUser]);
+  const addUser = async (user: Omit<User, 'id' | 'createdAt' | 'avatar' | 'canAssignTasks' | 'lastLogin'> & { password?: string }) => {
+    if (!user.password) {
+      throw new Error("Password is required to create a new user.");
+    }
+    try {
+      // Prepare data for backend
+      const userDataForBackend = {
+        email: user.email,
+        password: user.password,
+        is_admin: user.role === 'admin', // Map frontend role to backend is_admin
+      };
+      const newUserBackend = await apiCreateUser(userDataForBackend); // Call backend API
+
+      // Map backend response to frontend User type and update state
+      const newUserFrontend: User = {
+        id: String(newUserBackend.id), // Convert int to string
+        name: newUserBackend.email.split('@')[0], // Derive name from email
+        email: newUserBackend.email,
+        role: newUserBackend.is_admin ? 'admin' : 'user',
+        avatar: `https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400`,
+        canAssignTasks: newUserBackend.is_admin,
+        isActive: true, // Assuming active on creation
+        createdAt: new Date(), // Placeholder as backend doesn't return this
+        lastLogin: undefined,
+      };
+      setUsers(prev => [...prev, newUserFrontend]);
+      console.log("User created successfully:", newUserBackend);
+      loadUsers(); // Reload users to ensure the list is up-to-date
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      throw error; // Re-throw to be caught by UserForm for error display
+    }
   };
 
+
   const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(user => 
+    setUsers(prev => prev.map(user =>
       user.id === id ? { ...user, ...updates } : user
     ));
   };
@@ -214,7 +167,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const markNotificationAsRead = (id: string) => {
-    setNotifications(prev => prev.map(notif => 
+    setNotifications(prev => prev.map(notif =>
       notif.id === id ? { ...notif, isRead: true } : notif
     ));
   };
@@ -235,6 +188,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       deleteUser,
       addNotification,
       markNotificationAsRead,
+      loadUsers,
     }}>
       {children}
     </AppContext.Provider>
